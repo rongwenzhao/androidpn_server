@@ -53,7 +53,6 @@ public class NotificationApiController extends MultiActionController {
 			notificationManager.sendNotifcationToUser(apiKey, username, title,
 					message, uri);
 		}
-		
 		response.getWriter().print("{\"result\":\"0\",\"description\":\"success\"}");
 //		ModelAndView mav = new ModelAndView();
 //		mav.setViewName("redirect:notification.do");

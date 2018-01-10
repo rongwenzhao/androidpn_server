@@ -130,5 +130,10 @@
 		<property name="filterChainBuilder" ref="filterChainBuilder" />
 		<property name="reuseAddress" value="true" />
 	</bean>
+	
+	<!-- 设置服务器进入空闲状态的时间， 建议190s（心跳包60s，允许尝试三次，再大点，得190s）。     debug取40s-->
+	<bean id="getSessionConfig" factory-bean="ioAcceptor" factory-method="getSessionConfig">
+		<property name="readerIdleTime" value="40"></property>
+	</bean>
 
 </beans>
