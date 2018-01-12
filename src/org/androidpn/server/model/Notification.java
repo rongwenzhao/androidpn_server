@@ -39,6 +39,17 @@ public class Notification implements Serializable {
 	// 消息的连接，点击相应按钮跳转到的消息补充内容
 	@Column(name = "uri", length = 256)
 	private String uri;
+	// 消息的唯一标志符。用于推送消息，以及客户端回执时的消息唯一标志。
+	@Column(name = "uuid", length = 64, nullable = false, unique = true)
+	private String uuid;
+
+	public String getUuid() {
+		return uuid;
+	}
+
+	public void setUuid(String uuid) {
+		this.uuid = uuid;
+	}
 
 	public Long getId() {
 		return id;

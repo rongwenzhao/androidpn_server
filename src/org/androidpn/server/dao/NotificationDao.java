@@ -6,6 +6,7 @@ import org.androidpn.server.model.Notification;
 
 /**
  * Notification的操作接口
+ * 
  * @author Administrator
  *
  */
@@ -15,4 +16,6 @@ public interface NotificationDao {
 	List<Notification> findNotificationsByUserName(String username);
 
 	void deleteNotification(Notification notification);
+
+	void deleteNotificationByUUID(String uuid);
 }

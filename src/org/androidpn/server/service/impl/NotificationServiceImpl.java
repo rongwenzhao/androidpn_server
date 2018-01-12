@@ -35,4 +35,8 @@ public class NotificationServiceImpl implements NotificationService {
 		notificationDao.deleteNotification(notification);
 	}
 
+	public void deleteNotificationByUUID(String uuid) {
+		notificationDao.deleteNotificationByUUID(uuid);
+	}
+
 }

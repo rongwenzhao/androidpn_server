@@ -70,14 +70,14 @@ public class NotificationManager {
      * @param uri the uri
      */
 	public void sendBroadcast(String apiKey, String title, String message, String uri) {
-		log.debug("sendBroadcast()...");
+		/*log.debug("sendBroadcast()...");
 		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
 		for (ClientSession session : sessionManager.getSessions()) {
 			if (session.getPresence().isAvailable()) {
 				notificationIQ.setTo(session.getAddress());
 				session.deliver(notificationIQ);
 			}
-		}
+		}*/
 	}
     
     /**
@@ -90,87 +90,96 @@ public class NotificationManager {
      */
 	public void sendBroadcastToAllUsers(String apiKey, String title, String message, String uri) {
 		log.debug("sendBroadcast()...");
-		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
 		List<User> allUsers = userService.getUsers();
 		for (User user : allUsers) {
+			Random random = new Random();
+			String id = Integer.toHexString(random.nextInt());// id生成策略。数据范围很大，可以认为是惟一的。具体业务使用情况，可以再处理。
+			IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri);
 			ClientSession session = sessionManager.getSession(user.getUsername());
 			if (session != null && session.getPresence().isAvailable()) {
 				notificationIQ.setTo(session.getAddress());
 				session.deliver(notificationIQ);
-			} else {
-				saveNotification(apiKey, user.getUsername(), title, message, uri);
 			}
+			saveNotification(apiKey, user.getUsername(), title, message, uri, id);
 		}
 	}
 
 	/**
 	 * Sends a newly created notification message to the specific user.
+	 * 
 	 * @param apiKey
 	 * @param username
 	 * @param title
 	 * @param message
 	 * @param uri
 	 */
-    public void sendNotifcationToUser(String apiKey, String username,
-            String title, String message, String uri) {
+	public void sendNotifcationToUser(String apiKey, String username, String title, String message, String uri,
+			String id_from_db) {
 		log.debug("sendNotifcationToUser()...");
-		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
+		Random random = new Random();
+		String id;
+		boolean offlineMessage = false;//是否为离线消息
+		offlineMessage = (id_from_db != null) && (id_from_db.trim().length() > 0);
+		if (offlineMessage) {
+			id = id_from_db;
+		} else {//非离线消息
+			id = Integer.toHexString(random.nextInt());// id生成策略。数据范围很大，可以认为是惟一的。具体业务使用情况，可以再处理。
+		}
+		IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri);
 		ClientSession session = sessionManager.getSession(username);
 		if (session != null) {
 			if (session.getPresence().isAvailable()) {
 				notificationIQ.setTo(session.getAddress());
 				session.deliver(notificationIQ);
-			} else {
-				// session不为null，但Presence状态不为Available，保存到服务器数据库
-				saveNotification(apiKey, username, title, message, uri);
 			}
+		}
+		if (offlineMessage) {
+			//do nothing
 		} else {
-			// session为null并且用户是存在的
+			//非离线消息，保存到数据库
 			try {
 				User user = userService.getUserByUsername(username);
 				if (user != null) {
-					saveNotification(apiKey, username, title, message, uri);
+					saveNotification(apiKey, username, title, message, uri, id);
 				}
 			} catch (UserNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
-    }
+	}
 
 	/**
 	 * 将未在线的用户的Notification保存到服务器端数据库
 	 */
-	private void saveNotification(String apiKey, String username, String title, String message, String uri) {
+	private void saveNotification(String apiKey, String username, String title, String message, String uri,
+			String uuid) {
 		Notification notification = new Notification();
 		notification.setApiKey(apiKey);
 		notification.setUsername(username);
 		notification.setTitle(title);
 		notification.setMessage(message);
 		notification.setUri(uri);
+		notification.setUuid(uuid);
 		notificationService.saveNotification(notification);
 	}
     
-    /**
-     * Creates a new notification IQ and returns it.
-     */
-    private IQ createNotificationIQ(String apiKey, String title,
-            String message, String uri) {
-        Random random = new Random();
-        String id = Integer.toHexString(random.nextInt());
-        // String id = String.valueOf(System.currentTimeMillis());
+	/**
+	 * Creates a new notification IQ and returns it.
+	 */
+	private IQ createNotificationIQ(String id, String apiKey, String title, String message, String uri) {
+		// String id = String.valueOf(System.currentTimeMillis());
 
-        Element notification = DocumentHelper.createElement(QName.get(
-                "notification", NOTIFICATION_NAMESPACE));
-        notification.addElement("id").setText(id);
-        notification.addElement("apiKey").setText(apiKey);
-        notification.addElement("title").setText(title);
-        notification.addElement("message").setText(message);
-        notification.addElement("uri").setText(uri);
+		Element notification = DocumentHelper.createElement(QName.get("notification", NOTIFICATION_NAMESPACE));
+		notification.addElement("id").setText(id);
+		notification.addElement("apiKey").setText(apiKey);
+		notification.addElement("title").setText(title);
+		notification.addElement("message").setText(message);
+		notification.addElement("uri").setText(uri);
 
-        IQ iq = new IQ();
-        iq.setType(IQ.Type.set);
-        iq.setChildElement(notification);
+		IQ iq = new IQ();
+		iq.setType(IQ.Type.set);
+		iq.setChildElement(notification);
 
-        return iq;
-    }
+		return iq;
+	}
 }

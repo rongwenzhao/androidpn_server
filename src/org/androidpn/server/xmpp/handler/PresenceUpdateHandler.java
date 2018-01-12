@@ -94,9 +94,10 @@ public class PresenceUpdateHandler {
 					for (Notification notification : notificationList) {
 						// 发送离线消息
 						notificationManager.sendNotifcationToUser(notification.getApiKey(), notification.getUsername(),
-								notification.getTitle(), notification.getMessage(), notification.getUri());
+								notification.getTitle(), notification.getMessage(), notification.getUri(),notification.getUuid());
+						//离线消息也会通过回执来删除，只是本身已经有uuid了
 						// 删除已经发送的离线消息
-						notificationService.deleteNotification(notification);
+						//notificationService.deleteNotification(notification);
 					}
 				}
 

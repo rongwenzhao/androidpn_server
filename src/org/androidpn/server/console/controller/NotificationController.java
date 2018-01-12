@@ -65,7 +65,7 @@ public class NotificationController extends MultiActionController {
             notificationManager.sendBroadcastToAllUsers(apiKey, title, message, uri);
         } else {
             notificationManager.sendNotifcationToUser(apiKey, username, title,
-                    message, uri);
+                    message, uri, null);
         }
 
         ModelAndView mav = new ModelAndView();
