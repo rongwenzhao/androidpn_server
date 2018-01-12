@@ -17,8 +17,15 @@
  */
 package org.androidpn.server.xmpp.push;
 
+import java.util.List;
 import java.util.Random;
 
+import org.androidpn.server.model.Notification;
+import org.androidpn.server.model.User;
+import org.androidpn.server.service.NotificationService;
+import org.androidpn.server.service.ServiceLocator;
+import org.androidpn.server.service.UserNotFoundException;
+import org.androidpn.server.service.UserService;
 import org.androidpn.server.xmpp.session.ClientSession;
 import org.androidpn.server.xmpp.session.SessionManager;
 import org.apache.commons.logging.Log;
@@ -40,12 +47,18 @@ public class NotificationManager {
     private final Log log = LogFactory.getLog(getClass());
 
     private SessionManager sessionManager;
+    
+    private NotificationService notificationService;
+    
+    private UserService userService;
 
     /**
      * Constructor.
      */
     public NotificationManager() {
         sessionManager = SessionManager.getInstance();
+        notificationService = ServiceLocator.getNotificationService();
+        userService = ServiceLocator.getUserService();
     }
 
     /**
@@ -56,39 +69,87 @@ public class NotificationManager {
      * @param message the message details
      * @param uri the uri
      */
-    public void sendBroadcast(String apiKey, String title, String message,
-            String uri) {
-        log.debug("sendBroadcast()...");
-        IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
-        for (ClientSession session : sessionManager.getSessions()) {
-            if (session.getPresence().isAvailable()) {
-                notificationIQ.setTo(session.getAddress());
-                session.deliver(notificationIQ);
-            }
-        }
-    }
-
+	public void sendBroadcast(String apiKey, String title, String message, String uri) {
+		log.debug("sendBroadcast()...");
+		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
+		for (ClientSession session : sessionManager.getSessions()) {
+			if (session.getPresence().isAvailable()) {
+				notificationIQ.setTo(session.getAddress());
+				session.deliver(notificationIQ);
+			}
+		}
+	}
+    
     /**
-     * Sends a newly created notification message to the specific user.
+     * Broadcasts a newly created notification message to all users.
      * 
      * @param apiKey the API key
      * @param title the title
      * @param message the message details
      * @param uri the uri
      */
+	public void sendBroadcastToAllUsers(String apiKey, String title, String message, String uri) {
+		log.debug("sendBroadcast()...");
+		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
+		List<User> allUsers = userService.getUsers();
+		for (User user : allUsers) {
+			ClientSession session = sessionManager.getSession(user.getUsername());
+			if (session != null && session.getPresence().isAvailable()) {
+				notificationIQ.setTo(session.getAddress());
+				session.deliver(notificationIQ);
+			} else {
+				saveNotification(apiKey, user.getUsername(), title, message, uri);
+			}
+		}
+	}
+
+	/**
+	 * Sends a newly created notification message to the specific user.
+	 * @param apiKey
+	 * @param username
+	 * @param title
+	 * @param message
+	 * @param uri
+	 */
     public void sendNotifcationToUser(String apiKey, String username,
             String title, String message, String uri) {
-        log.debug("sendNotifcationToUser()...");
-        IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
-        ClientSession session = sessionManager.getSession(username);
-        if (session != null) {
-            if (session.getPresence().isAvailable()) {
-                notificationIQ.setTo(session.getAddress());
-                session.deliver(notificationIQ);
-            }
-        }
+		log.debug("sendNotifcationToUser()...");
+		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
+		ClientSession session = sessionManager.getSession(username);
+		if (session != null) {
+			if (session.getPresence().isAvailable()) {
+				notificationIQ.setTo(session.getAddress());
+				session.deliver(notificationIQ);
+			} else {
+				// session不为null，但Presence状态不为Available，保存到服务器数据库
+				saveNotification(apiKey, username, title, message, uri);
+			}
+		} else {
+			// session为null并且用户是存在的
+			try {
+				User user = userService.getUserByUsername(username);
+				if (user != null) {
+					saveNotification(apiKey, username, title, message, uri);
+				}
+			} catch (UserNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
     }
 
+	/**
+	 * 将未在线的用户的Notification保存到服务器端数据库
+	 */
+	private void saveNotification(String apiKey, String username, String title, String message, String uri) {
+		Notification notification = new Notification();
+		notification.setApiKey(apiKey);
+		notification.setUsername(username);
+		notification.setTitle(title);
+		notification.setMessage(message);
+		notification.setUri(uri);
+		notificationService.saveNotification(notification);
+	}
+    
     /**
      * Creates a new notification IQ and returns it.
      */

@@ -17,6 +17,12 @@
  */
 package org.androidpn.server.xmpp.handler;
 
+import java.util.List;
+
+import org.androidpn.server.model.Notification;
+import org.androidpn.server.service.NotificationService;
+import org.androidpn.server.service.ServiceLocator;
+import org.androidpn.server.xmpp.push.NotificationManager;
 import org.androidpn.server.xmpp.router.PacketDeliverer;
 import org.androidpn.server.xmpp.session.ClientSession;
 import org.androidpn.server.xmpp.session.Session;
@@ -38,12 +44,18 @@ public class PresenceUpdateHandler {
     protected final Log log = LogFactory.getLog(getClass());
 
     protected SessionManager sessionManager;
+    
+    private NotificationService notificationService;
+    
+    private NotificationManager notificationManager;
 
     /**
      * Constructor.
      */
     public PresenceUpdateHandler() {
         sessionManager = SessionManager.getInstance();
+        notificationService = ServiceLocator.getNotificationService();
+        notificationManager = new NotificationManager();
     }
 
     /**
@@ -73,6 +85,20 @@ public class PresenceUpdateHandler {
                         session.setInitialized(true);
                     }
                 }
+                
+				// 此处，客户端已经在线。在这儿，可以将客户端的所有离线消息发送给客户端。
+				List<Notification> notificationList = notificationService
+						.findNotificationsByUserName(session.getUsername());
+				// 判断该用户是否有离线消息
+				if (notificationList != null && notificationList.size() > 0) {
+					for (Notification notification : notificationList) {
+						// 发送离线消息
+						notificationManager.sendNotifcationToUser(notification.getApiKey(), notification.getUsername(),
+								notification.getTitle(), notification.getMessage(), notification.getUri());
+						// 删除已经发送的离线消息
+						notificationService.deleteNotification(notification);
+					}
+				}
 
             } else if (Presence.Type.unavailable == type) {
 
