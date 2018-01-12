@@ -61,12 +61,21 @@
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
 
+	<bean id="notificationDao"
+		class="org.androidpn.server.dao.hibernate.NotificationDaoHibernate">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
 	<!-- =============================================================== -->
 	<!-- Services                                                        -->
 	<!-- =============================================================== -->
 
 	<bean id="userService" class="org.androidpn.server.service.impl.UserServiceImpl">
 		<property name="userDao" ref="userDao" />
+	</bean>
+	
+	<bean id="notificationService" class="org.androidpn.server.service.impl.NotificationServiceImpl">
+		<property name="notificationDao" ref="notificationDao"></property>
 	</bean>
 
 	<!-- =============================================================== -->
