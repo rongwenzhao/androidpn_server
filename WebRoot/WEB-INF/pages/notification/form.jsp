@@ -18,21 +18,31 @@
 <tr>
 	<td width="20%">To:</td>
 	<td width="80%">
-		<input type="radio" name="broadcast" value="Y" checked="checked" />  All (Broadcast) 
-        <input type="radio" name="broadcast" value="N" /> Single Device 
+		<input type="radio" name="broadcast" value="0" checked="checked" />  All (Broadcast) 
+        <input type="radio" name="broadcast" value="1" /> By Username
+        <input type="radio" name="broadcast" value="2" /> By Alias 
+        <input type="radio" name="broadcast" value="3" /> By Tag 
 	</td>
 </tr>
 <tr id="trUsername" style="display:none;">
 	<td>Username:</td>
 	<td><input type="text" id="username" name="username" value="" style="width:380px;" /></td>
 </tr>
+<tr id="trAlias" style="display:none;">
+	<td>Alias:</td>
+	<td><input type="text" id="alias" name="alias" value="" style="width:380px;" /></td>
+</tr>
+<tr id="trTag" style="display:none;">
+	<td>Tag:</td>
+	<td><input type="text" id="tag" name="tag" value="" style="width:380px;" /></td>
+</tr>
 <tr>
 	<td>Title:</td>
-	<td><input type="text" id="title" name="title" value="Dokdo Island" style="width:380px;" /></td>
+	<td><input type="text" id="title" name="title" value="标题" style="width:380px;" /></td>
 </tr>
 <tr>
 	<td>Message:</td>
-	<td><textarea id="message" name="message" style="width:380px; height:80px;" >Dokdo is a Korean island, the far east of the Korean territory. No doubt! No question! Don't mention it any more!</textarea></td>
+	<td><textarea id="message" name="message" style="width:380px; height:80px;" >消息内容。Message place.</textarea></td>
 </tr>
 <%--
 <tr>
@@ -42,7 +52,7 @@
 --%>
 <tr>
 	<td>URI:</td>
-	<td><input type="text" id="uri" name="uri" value="" style="width:380px;" />
+	<td><input type="text" id="uri" name="uri" value="http://www.baidu.com" style="width:380px;" />
 	    <br/><span style="font-size:0.8em">ex) http://www.dokdocorea.com, geo:37.24,131.86, tel:111-222-3333</span>
 	</td>
 </tr>
@@ -59,21 +69,47 @@
  
 $(function() {
 	$('input[name=broadcast]').click(function() {
-		if ($('input[name=broadcast]')[0].checked) {
+			if ($('input[name=broadcast]')[0].checked) {
+				$('#trUsername').hide();
+				$('#trAlias').hide();trTag
+				$('#trTag').hide();
+			} else if ($('input[name=broadcast]')[1].checked) {
+				$('#trUsername').show();
+				$('#trAlias').hide();
+				$('#trTag').hide();
+			} else if ($('input[name=broadcast]')[2].checked) {
+				$('#trUsername').hide();
+				$('#trTag').hide();
+				$('#trAlias').show();
+			} else if($('input[name=broadcast]')[3].checked){
+				$('#trUsername').hide();
+				$('#trTag').show();
+				$('#trAlias').hide();
+			}
+		});
+
+	/* 页面加载完成后调用的方法 */
+	if ($('input[name=broadcast]')[0].checked) {
 			$('#trUsername').hide();
-		} else {
+			$('#trAlias').hide();
+			trTag
+			$('#trTag').hide();
+		} else if ($('input[name=broadcast]')[1].checked) {
 			$('#trUsername').show();
+			$('#trAlias').hide();
+			$('#trTag').hide();
+		} else if ($('input[name=broadcast]')[2].checked) {
+			$('#trUsername').hide();
+			$('#trTag').hide();
+			$('#trAlias').show();
+		} else if ($('input[name=broadcast]')[3].checked) {
+			$('#trUsername').hide();
+			$('#trTag').show();
+			$('#trAlias').hide();
 		}
 	});
-	
-	if ($('input[name=broadcast]')[0].checked) {
-		$('#trUsername').hide();
-	} else {
-		$('#trUsername').show();
-	}	
-});
- 
-//]]>
+
+	//]]>
 </script>
 
 </body>

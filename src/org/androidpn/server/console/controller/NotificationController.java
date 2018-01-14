@@ -26,51 +26,55 @@ import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 
-/** 
- * A controller class to process the notification related requests.  
+/**
+ * A controller class to process the notification related requests.
  *
  * @author Sehwan Noh (devnoh@gmail.com)
  */
 public class NotificationController extends MultiActionController {
 
-    private NotificationManager notificationManager;
+	private NotificationManager notificationManager;
 
-    public NotificationController() {
-        notificationManager = new NotificationManager();
-    }
+	public NotificationController() {
+		notificationManager = new NotificationManager();
+	}
 
-    public ModelAndView list(HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
-        ModelAndView mav = new ModelAndView();
-        // mav.addObject("list", null);
-        mav.setViewName("notification/form");
-        return mav;
-    }
+	public ModelAndView list(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		ModelAndView mav = new ModelAndView();
+		// mav.addObject("list", null);
+		mav.setViewName("notification/form");
+		return mav;
+	}
 
-    public ModelAndView send(HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
-        String broadcast = ServletRequestUtils.getStringParameter(request,
-                "broadcast", "Y");
-        String username = ServletRequestUtils.getStringParameter(request,
-                "username");
-        String title = ServletRequestUtils.getStringParameter(request, "title");
-        String message = ServletRequestUtils.getStringParameter(request,
-                "message");
-        String uri = ServletRequestUtils.getStringParameter(request, "uri");
+	public ModelAndView send(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String broadcast = ServletRequestUtils.getStringParameter(request, "broadcast", "0");
+		String username = ServletRequestUtils.getStringParameter(request, "username");
+		String alias = ServletRequestUtils.getStringParameter(request, "alias");
+		String tag = ServletRequestUtils.getStringParameter(request, "tag");
+		String title = ServletRequestUtils.getStringParameter(request, "title");
+		String message = ServletRequestUtils.getStringParameter(request, "message");
+		String uri = ServletRequestUtils.getStringParameter(request, "uri");
 
-        String apiKey = Config.getString("apiKey", "");
-        logger.debug("apiKey=" + apiKey);
+		String apiKey = Config.getString("apiKey", "");
+		logger.debug("apiKey=" + apiKey);
 
-        if (broadcast.equalsIgnoreCase("Y")) {
-            notificationManager.sendBroadcastToAllUsers(apiKey, title, message, uri);
-        } else {
-            notificationManager.sendNotifcationToUser(apiKey, username, title,
-                    message, uri, null);
-        }
+		if (broadcast.equalsIgnoreCase("0")) {
+			// 广播
+			notificationManager.sendBroadcastToAllUsers(apiKey, title, message, uri);
+		} else if (broadcast.equalsIgnoreCase("1")) {
+			// 通过用户名发送
+			notificationManager.sendNotifcationToUser(apiKey, username, title, message, uri, null);
+		} else if (broadcast.equalsIgnoreCase("2")) {
+			// 通过别名发送
+			notificationManager.sendNotificationByAlias(apiKey, alias, title, message, uri, null);
+		} else if (broadcast.equalsIgnoreCase("3")) {
+			// 通过标签发送。发送给一组用户
+			notificationManager.sendNotificationByTag(apiKey, tag, title, message, uri, null);
+		}
 
-        ModelAndView mav = new ModelAndView();
-        mav.setViewName("redirect:notification.do");
-        return mav;
-    }
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName("redirect:notification.do");
+		return mav;
+	}
 
 }

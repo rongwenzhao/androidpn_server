@@ -19,6 +19,7 @@ package org.androidpn.server.xmpp.push;
 
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.androidpn.server.model.Notification;
 import org.androidpn.server.model.User;
@@ -147,9 +148,47 @@ public class NotificationManager {
 			}
 		}
 	}
+	
+	/**
+	 * 根据用户别名来发送消息(比如应用有其他的账号体系，此时可使用该账号体系进行消息发送).
+	 * 
+	 * @param apiKey
+	 * @param alias
+	 * @param title
+	 * @param message
+	 * @param uri
+	 * @param id_from_db
+	 */
+	public void sendNotificationByAlias(String apiKey, String alias, String title, String message, String uri,
+			String id_from_db) {
+		String username = sessionManager.getUsernameByAlias(alias);
+		if (username != null) {
+			sendNotifcationToUser(apiKey, username, title, message, uri, id_from_db);
+		}
+	}
+	
+	/**
+	 * 通过标签发送消息
+	 * 
+	 * @param apiKey
+	 * @param tag
+	 * @param title
+	 * @param message
+	 * @param uri
+	 * @param id_from_db
+	 */
+	public void sendNotificationByTag(String apiKey, String tag, String title, String message, String uri,
+			String id_from_db) {
+		Set<String> usernameSet = sessionManager.getUsernamesByTag(tag);
+		if (usernameSet != null && !usernameSet.isEmpty()) {
+			for (String username : usernameSet) {
+				sendNotifcationToUser(apiKey, username, title, message, uri, id_from_db);
+			}
+		}
+	}
 
 	/**
-	 * 将未在线的用户的Notification保存到服务器端数据库
+	 * 将Notification保存到服务器端数据库
 	 */
 	private void saveNotification(String apiKey, String username, String title, String message, String uri,
 			String uuid) {

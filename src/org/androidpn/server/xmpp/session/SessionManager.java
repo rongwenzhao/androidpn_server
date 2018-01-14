@@ -30,6 +30,7 @@ import org.androidpn.server.xmpp.net.Connection;
 import org.androidpn.server.xmpp.net.ConnectionCloseListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.mina.util.ConcurrentHashSet;
 import org.xmpp.packet.JID;
 
 /** 
@@ -50,6 +51,12 @@ public class SessionManager {
     private Map<String, ClientSession> preAuthSessions = new ConcurrentHashMap<String, ClientSession>();
 
     private Map<String, ClientSession> clientSessions = new ConcurrentHashMap<String, ClientSession>();
+    
+	// 别名与用户名的映射
+	private Map<String, String> aliasUsernameMap = new ConcurrentHashMap<String, String>();
+	
+	// 标签tag与用户名的映射。一个tag可对应对个用户
+	private Map<String, ConcurrentHashSet<String>> tagUsernamesMap = new ConcurrentHashMap<String, ConcurrentHashSet<String>>();
 
     private final AtomicInteger connectionsCounter = new AtomicInteger(0);
 
@@ -213,5 +220,52 @@ public class SessionManager {
             }
         }
     }
+    
+	/**
+	 * 添加别名与用户名的映射
+	 * 
+	 * @param username
+	 * @param alias
+	 */
+	public void setAliasUsername(String username, String alias) {
+		aliasUsernameMap.put(alias, username);
+	}
 
+	/**
+	 * 获取别名与用户名的映射
+	 * 
+	 * @param alias
+	 * @return
+	 */
+	public String getUsernameByAlias(String alias) {
+		String username = aliasUsernameMap.get(alias);
+		return username;
+	}
+	
+	/**
+	 * 添加用户到指定标签对应集合
+	 * 
+	 * @param username
+	 * @param tag
+	 */
+	public void setUserTag(String username, String tag) {
+		ConcurrentHashSet<String> hashSet = tagUsernamesMap.get(tag);
+		if (hashSet == null) {
+			hashSet = new ConcurrentHashSet<String>();
+			hashSet.add(username);
+			tagUsernamesMap.put(tag, hashSet);
+		} else {
+			hashSet.add(username);
+		}
+	}
+	
+	/**
+	 * 通过标签获取用户集合
+	 * 
+	 * @param tag
+	 * @return
+	 */
+	public Set<String> getUsernamesByTag(String tag) {
+		return tagUsernamesMap.get(tag);
+	}
 }
