@@ -28,6 +28,7 @@ import org.androidpn.server.xmpp.handler.IQHandler;
 import org.androidpn.server.xmpp.handler.IQRegisterHandler;
 import org.androidpn.server.xmpp.handler.IQRosterHandler;
 import org.androidpn.server.xmpp.handler.IQSetAliasHandler;
+import org.androidpn.server.xmpp.handler.IQSetTagsHandler;
 import org.androidpn.server.xmpp.session.ClientSession;
 import org.androidpn.server.xmpp.session.Session;
 import org.androidpn.server.xmpp.session.SessionManager;
@@ -63,6 +64,7 @@ public class IQRouter {
 		iqHandlers.add(new IQRosterHandler());// 获取联系人
 		iqHandlers.add(new IQDeliverConfirmHandler());// 消息回执的handler，处理已经成功接收的消息的返回确认。
 		iqHandlers.add(new IQSetAliasHandler());// 设置别名的handler
+		iqHandlers.add(new IQSetTagsHandler());// 设置用户关注的标签的handler
 	}
 
 	/**
