@@ -36,72 +36,80 @@ import org.dom4j.Element;
 import org.dom4j.QName;
 import org.xmpp.packet.IQ;
 
-/** 
- * This class is to manage sending the notifcations to the users.  
+/**
+ * This class is to manage sending the notifcations to the users.
  *
  * @author Sehwan Noh (devnoh@gmail.com)
  */
 public class NotificationManager {
 
-    private static final String NOTIFICATION_NAMESPACE = "androidpn:iq:notification";
+	private static final String NOTIFICATION_NAMESPACE = "androidpn:iq:notification";
 
-    private final Log log = LogFactory.getLog(getClass());
+	private final Log log = LogFactory.getLog(getClass());
 
-    private SessionManager sessionManager;
-    
-    private NotificationService notificationService;
-    
-    private UserService userService;
+	private SessionManager sessionManager;
 
-    /**
-     * Constructor.
-     */
-    public NotificationManager() {
-        sessionManager = SessionManager.getInstance();
-        notificationService = ServiceLocator.getNotificationService();
-        userService = ServiceLocator.getUserService();
-    }
+	private NotificationService notificationService;
 
-    /**
-     * Broadcasts a newly created notification message to all connected users.
-     * 
-     * @param apiKey the API key
-     * @param title the title
-     * @param message the message details
-     * @param uri the uri
-     */
-	public void sendBroadcast(String apiKey, String title, String message, String uri) {
-		/*log.debug("sendBroadcast()...");
-		IQ notificationIQ = createNotificationIQ(apiKey, title, message, uri);
-		for (ClientSession session : sessionManager.getSessions()) {
-			if (session.getPresence().isAvailable()) {
-				notificationIQ.setTo(session.getAddress());
-				session.deliver(notificationIQ);
-			}
-		}*/
+	private UserService userService;
+
+	/**
+	 * Constructor.
+	 */
+	public NotificationManager() {
+		sessionManager = SessionManager.getInstance();
+		notificationService = ServiceLocator.getNotificationService();
+		userService = ServiceLocator.getUserService();
 	}
-    
-    /**
-     * Broadcasts a newly created notification message to all users.
-     * 
-     * @param apiKey the API key
-     * @param title the title
-     * @param message the message details
-     * @param uri the uri
-     */
-	public void sendBroadcastToAllUsers(String apiKey, String title, String message, String uri) {
+
+	/**
+	 * Broadcasts a newly created notification message to all connected users.
+	 * 
+	 * @param apiKey
+	 *            the API key
+	 * @param title
+	 *            the title
+	 * @param message
+	 *            the message details
+	 * @param uri
+	 *            the uri
+	 */
+	public void sendBroadcast(String apiKey, String title, String message, String uri) {
+		/*
+		 * log.debug("sendBroadcast()..."); IQ notificationIQ =
+		 * createNotificationIQ(apiKey, title, message, uri); for (ClientSession session
+		 * : sessionManager.getSessions()) { if (session.getPresence().isAvailable()) {
+		 * notificationIQ.setTo(session.getAddress()); session.deliver(notificationIQ);
+		 * } }
+		 */
+	}
+
+	/**
+	 * Broadcasts a newly created notification message to all users.
+	 * 
+	 * @param apiKey
+	 *            the API key
+	 * @param title
+	 *            the title
+	 * @param message
+	 *            the message details
+	 * @param uri
+	 *            the uri
+	 */
+	public void sendBroadcastToAllUsers(String apiKey, String title, String message, String uri, String imageUrl) {
 		log.debug("sendBroadcast()...");
 		List<User> allUsers = userService.getUsers();
 		for (User user : allUsers) {
 			Random random = new Random();
 			String id = Integer.toHexString(random.nextInt());// id生成策略。数据范围很大，可以认为是惟一的。具体业务使用情况，可以再处理。
-			IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri);
+			// 先保存，再发送。解决可能出现的问题：发送很快返回但数据库还没保存，导致的重复发送消息问题。
+			saveNotification(apiKey, user.getUsername(), title, message, uri, id, imageUrl);
+			IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri, imageUrl);
 			ClientSession session = sessionManager.getSession(user.getUsername());
 			if (session != null && session.getPresence().isAvailable()) {
 				notificationIQ.setTo(session.getAddress());
 				session.deliver(notificationIQ);
 			}
-			saveNotification(apiKey, user.getUsername(), title, message, uri, id);
 		}
 	}
 
@@ -115,18 +123,34 @@ public class NotificationManager {
 	 * @param uri
 	 */
 	public void sendNotifcationToUser(String apiKey, String username, String title, String message, String uri,
-			String id_from_db) {
+			String imageUrl, String id_from_db) {
 		log.debug("sendNotifcationToUser()...");
 		Random random = new Random();
 		String id;
-		boolean offlineMessage = false;//是否为离线消息
+		boolean offlineMessage = false;// 是否为离线消息
 		offlineMessage = (id_from_db != null) && (id_from_db.trim().length() > 0);
 		if (offlineMessage) {
 			id = id_from_db;
-		} else {//非离线消息
+		} else {// 非离线消息
 			id = Integer.toHexString(random.nextInt());// id生成策略。数据范围很大，可以认为是惟一的。具体业务使用情况，可以再处理。
 		}
-		IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri);
+
+		// 先保存，再发送。解决可能出现的问题：发送很快返回但数据库还没保存，导致的重复发送消息问题。
+		if (offlineMessage) {
+			// do nothing
+		} else {
+			// 非离线消息，保存到数据库
+			try {
+				User user = userService.getUserByUsername(username);
+				if (user != null) {
+					saveNotification(apiKey, username, title, message, uri, id, imageUrl);
+				}
+			} catch (UserNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+
+		IQ notificationIQ = createNotificationIQ(id, apiKey, title, message, uri, imageUrl);
 		ClientSession session = sessionManager.getSession(username);
 		if (session != null) {
 			if (session.getPresence().isAvailable()) {
@@ -134,21 +158,8 @@ public class NotificationManager {
 				session.deliver(notificationIQ);
 			}
 		}
-		if (offlineMessage) {
-			//do nothing
-		} else {
-			//非离线消息，保存到数据库
-			try {
-				User user = userService.getUserByUsername(username);
-				if (user != null) {
-					saveNotification(apiKey, username, title, message, uri, id);
-				}
-			} catch (UserNotFoundException e) {
-				e.printStackTrace();
-			}
-		}
 	}
-	
+
 	/**
 	 * 根据用户别名来发送消息(比如应用有其他的账号体系，此时可使用该账号体系进行消息发送).
 	 * 
@@ -160,13 +171,13 @@ public class NotificationManager {
 	 * @param id_from_db
 	 */
 	public void sendNotificationByAlias(String apiKey, String alias, String title, String message, String uri,
-			String id_from_db) {
+			String imageUrl, String id_from_db) {
 		String username = sessionManager.getUsernameByAlias(alias);
 		if (username != null) {
-			sendNotifcationToUser(apiKey, username, title, message, uri, id_from_db);
+			sendNotifcationToUser(apiKey, username, title, message, uri, imageUrl, id_from_db);
 		}
 	}
-	
+
 	/**
 	 * 通过标签发送消息
 	 * 
@@ -178,11 +189,11 @@ public class NotificationManager {
 	 * @param id_from_db
 	 */
 	public void sendNotificationByTag(String apiKey, String tag, String title, String message, String uri,
-			String id_from_db) {
+			String imageUrl, String id_from_db) {
 		Set<String> usernameSet = sessionManager.getUsernamesByTag(tag);
 		if (usernameSet != null && !usernameSet.isEmpty()) {
 			for (String username : usernameSet) {
-				sendNotifcationToUser(apiKey, username, title, message, uri, id_from_db);
+				sendNotifcationToUser(apiKey, username, title, message, uri, imageUrl, id_from_db);
 			}
 		}
 	}
@@ -190,8 +201,8 @@ public class NotificationManager {
 	/**
 	 * 将Notification保存到服务器端数据库
 	 */
-	private void saveNotification(String apiKey, String username, String title, String message, String uri,
-			String uuid) {
+	private void saveNotification(String apiKey, String username, String title, String message, String uri, String uuid,
+			String imageUrl) {
 		Notification notification = new Notification();
 		notification.setApiKey(apiKey);
 		notification.setUsername(username);
@@ -199,13 +210,16 @@ public class NotificationManager {
 		notification.setMessage(message);
 		notification.setUri(uri);
 		notification.setUuid(uuid);
+		notification.setImageUrl(imageUrl);
+		System.out.println(notification.toString());
 		notificationService.saveNotification(notification);
 	}
-    
+
 	/**
 	 * Creates a new notification IQ and returns it.
 	 */
-	private IQ createNotificationIQ(String id, String apiKey, String title, String message, String uri) {
+	private IQ createNotificationIQ(String id, String apiKey, String title, String message, String uri,
+			String imageUrl) {
 		// String id = String.valueOf(System.currentTimeMillis());
 
 		Element notification = DocumentHelper.createElement(QName.get("notification", NOTIFICATION_NAMESPACE));
@@ -214,6 +228,7 @@ public class NotificationManager {
 		notification.addElement("title").setText(title);
 		notification.addElement("message").setText(message);
 		notification.addElement("uri").setText(uri);
+		notification.addElement("imageUrl").setText(imageUrl);
 
 		IQ iq = new IQ();
 		iq.setType(IQ.Type.set);

@@ -13,7 +13,7 @@
 
 <%--<div style="background:#eee; margin:20px 0px; padding:20px; width:500px; border:solid 1px #999;">--%>
 <div style="margin:20px 0px;">
-<form action="notification.do?action=send" method="post" style="margin: 0px;">
+<form action="notification.do?action=send" method="post" style="margin: 0px;" enctype="multipart/form-data">
 <table width="600" cellpadding="4" cellspacing="0" border="0">
 <tr>
 	<td width="20%">To:</td>
@@ -54,6 +54,12 @@
 	<td>URI:</td>
 	<td><input type="text" id="uri" name="uri" value="http://www.baidu.com" style="width:380px;" />
 	    <br/><span style="font-size:0.8em">ex) http://www.dokdocorea.com, geo:37.24,131.86, tel:111-222-3333</span>
+	</td>
+</tr>
+<tr>
+	<td>Image:</td>
+	<td><input type="file" id="image" name="image" style="width:380px;" />
+	    <br/><span style="font-size:0.8em">Only image is avaliable.</span>
 	</td>
 </tr>
 <tr>
